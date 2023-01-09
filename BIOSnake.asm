@@ -1,0 +1,126 @@
+[ORG 0x7C00]
+[BITS 16]
+
+JMP SHORT SETUP
+TIMES 0x3E DB 0
+
+SETUP:
+	XOR AX, AX
+	MOV DS, AX
+	MOV ES, AX
+	MOV SS, AX
+	MOV SP, 0x7C00
+	MOV BP, SP ; Initialise the segments.
+
+	MOV AH, 0x00
+	MOV AL, 0x01
+	INT 0x10 ; Set display to 40x25 and 16 bits of colour.
+
+	MOV AH, 0x01
+	MOV CX, 0x2607
+	INT 0x10 ; Make the cursor invisible.
+
+	MOV AX, 0x1003
+	MOV BL, 0x00
+	INT 0x10 ; Turn off blinking attribute.
+
+	PUSH WORD[HEAD_COORDS] 
+
+	MOV AL, ' '
+	MOV BX, 0x007F
+	XOR DX, DX
+
+PRINT_BORDER:
+	MOV CX, 40
+	CALL WRITE_AT_LOCATION
+
+	MOV DH, 24
+	CALL WRITE_AT_LOCATION
+
+	MOV CX, 1
+	MOV DH, 1
+	MOV SI, 23
+
+LEFT_SIDE:
+	CALL WRITE_AT_LOCATION
+	INC DH
+	DEC SI
+	JNZ LEFT_SIDE
+
+	MOV SI, 23
+	MOV DL, 39
+	MOV DH, 1
+
+RIGHT_SIDE:
+	CALL WRITE_AT_LOCATION
+	INC DH
+	DEC SI
+	JNZ RIGHT_SIDE
+
+	MOV BX, 0x0007
+
+GET_KEY:
+	MOV AH, 0x01
+	INT 0x16
+
+	JZ PRINT_CHAR 
+
+	MOV AH, 0x00
+	INT 0x16
+
+	OR AL, 0B00100000
+
+	MOV BYTE[LAST_KEY], AL
+	; JMP GET_KEY
+
+PRINT_CHAR:
+	MOV AX, BP
+	SUB AX, SP
+	SHR AL, 1
+	ADD AL, 48
+
+	MOV AL, BYTE[LAST_KEY]
+
+	MOV CX, 1
+	MOV DX, WORD[HEAD_COORDS] 
+	CALL WRITE_AT_LOCATION
+
+	MOV AH, 0x86
+	MOV CX, 0x0002
+	MOV DX, 0x49F0
+	INT 0x15
+
+	JMP GET_KEY
+
+HALT:
+	HLT
+	JMP HALT
+
+; Writes n amount of coloured characters on a given location.
+;
+; AL -> Character.
+; BH -> Page.
+; BL -> Colour.
+; CX -> Number of characters.
+; DH -> Row.
+; DL -> Column.
+WRITE_AT_LOCATION:
+	PUSH AX
+
+	MOV AH, 0x02
+	INT 0x10
+
+	MOV AH, 0x09
+	INT 0x10
+
+	POP AX
+	RET
+
+LAST_KEY: DB 'a'
+
+HEAD_COORDS:
+HEAD_X: DB 20
+HEAD_Y: DB 12
+
+TIMES 510 - ($ - $$) DB 0
+DW 0xAA55
