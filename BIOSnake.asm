@@ -160,16 +160,6 @@ DISPLAY_STUFF:
 	MOV DX, WORD[FRUIT_COORDS]
 	CALL WRITE_AT_LOCATION ; Display the fruit.
 
-	; MOV BL, 0x07
-	; MOV DX, 0x0100
-
-	; MOV AH, 0x02
-	; MOV DX, 0x0001
-	; INT 0x10
-
-	; MOV SI, SCORE_STR
-	; CALL PUTS
-
 	MOV AH, 0x86
 	MOV CX, 0x0002
 	MOV DX, 0x49F0
@@ -223,7 +213,6 @@ WRITE_AT_LOCATION:
 
 	POP AX
 	RET
-
 
 ; Prints a null terminated string on the screen.
 ;
