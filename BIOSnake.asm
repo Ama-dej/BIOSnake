@@ -13,6 +13,12 @@ SETUP:
 	MOV BL, 0x00
 	INT 0x10 ; Turn off blinking attribute.
 
+	MOV SI, ANY_KEY_MSG
+	CALL PUTS
+
+	MOV AH, 0x00
+	INT 0x16 ; Wait for the user to start the game.
+
 START_GAME:
 	MOV AH, 0x00
 	MOV AL, 0x01
@@ -33,7 +39,7 @@ GET_KEY:
 	MOV AH, 0x00
 	INT 0x16 ; We have keys to read so we read the key.
 
-	OR AL, 0B00100000 ; Convert it to uppercase.
+	OR AL, 0B00100000 ; Convert it to lowercase.
 
 DIRECTION_SWITCH:
 	MOV DX, WORD[HEAD_COORDS] ; Load the head coordinates for later.
@@ -53,18 +59,30 @@ DIRECTION_SWITCH:
 	JMP GET_KEY ; This means none of the correct keys were pressed so we wait for more.
 
 GO_LEFT:
+	CMP BYTE[LAST_KEY], 'd'
+	JE GET_KEY
+
 	DEC DL
 	JMP SHORT MOVE
 
 GO_RIGHT:
+	CMP BYTE[LAST_KEY], 'a' ; So you can't go backwards and hit yourself.
+	JE GET_KEY
+
 	INC DL
 	JMP SHORT MOVE
 
 GO_UP:
+	CMP BYTE[LAST_KEY], 's'
+	JE GET_KEY
+
 	DEC DH
 	JMP SHORT MOVE
 
 GO_DOWN:
+	CMP BYTE[LAST_KEY], 'w'
+	JE GET_KEY
+
 	INC DH ; Moving the snake, pretty self explanatory.
 
 MOVE:
@@ -75,6 +93,22 @@ MOVE:
 	MOV CX, 1 ; We want to print 1 block.
 
 	MOV BX, SNAKE_BODY ; The location of the snake body.
+	PUSH BX
+
+	MOV DI, WORD[SNAKE_LENGTH]
+	DEC DI
+	SHL DI, 1
+	ADD BX, DI ; Calculate the last snake segment location.
+
+	PUSH DX
+
+	MOV DX, WORD[BX]
+	MOV BX, 0x0007
+	CALL WRITE_AT_LOCATION ; Clear the last snake segment location.
+
+	POP DX
+	POP BX ; Restore our registers.
+
 	MOV DI, WORD[SNAKE_LENGTH]
 
 MOVE_LOOP:
@@ -83,17 +117,7 @@ MOVE_LOOP:
 	MOV WORD[BX], DX ; Store the new value.
 	ADD BX, 2 ; Move BX by a word.
 
-	PUSH BX
-
-	MOV BX, 0x0020
-	CALL WRITE_AT_LOCATION ; Clear the previous snake block.
-
 	MOV DX, SI
-
-	MOV BX, 0x0007
-	CALL WRITE_AT_LOCATION ; Now write the new one.
-
-	POP BX
 
 	DEC DI ; Check if we have snake segments to update.
 	JNZ CHECK_COLLISION
@@ -107,9 +131,9 @@ CHECK_COLLISION:
 	JMP MOVE_LOOP ; Do this for n more segments.
 
 CHECK_FRUIT_OVERLAP:
-	MOV BX, 0x0020
+	MOV BX, 0x0027
 	MOV DX, WORD[HEAD_COORDS]
-	CALL WRITE_AT_LOCATION ; The snake head isn't written correctly when trailing the last snake segment.
+	CALL WRITE_AT_LOCATION ; Write the snake head.
 	
 	CMP DL, 0
 	JL DEAD 
@@ -149,8 +173,8 @@ CHECK_FRUIT_OVERLAP:
 
 	OR DX, CX
 
-	MOV WORD[FRUIT_COORDS], DX ; Save the new coordinate.
 	INC WORD[SNAKE_LENGTH] ; Increment the snake lenght.
+	MOV WORD[FRUIT_COORDS], DX ; Save the new coordinate.
 
 	MOV CX, 1
 	MOV AL, ' ' ; We modified these registers so we have to restore them to the correct values.
@@ -168,11 +192,8 @@ DISPLAY_STUFF:
 	JMP GET_KEY
 
 DEAD:
-	MOV BX, 0x0020
-	MOV DX, WORD[HEAD_COORDS]
-	CALL WRITE_AT_LOCATION ; The head disappears in the body when it collides so we just write it again (unnecessary).
-
 	MOV AH, 0x02
+	XOR BX, BX
 	MOV DX, 0x0B05
 	INT 0x10 ; Change cursor location to around the middle of the screen.
 
@@ -186,8 +207,10 @@ WAIT_FOR_R:
 	MOV AH, 0x00
 	INT 0x16 ; Wait for any key to be pressed.
 
+	OR AL, 0B00100000 ; Make the character lowercase.
+
 	CMP AL, 'r'
-	JE START_GAME ; If it's r then reset the game else wait again.
+	JE START_GAME ; If it's r then reset the game, else wait again.
 	JMP WAIT_FOR_R 
 	
 HALT:
@@ -242,11 +265,11 @@ HEAD_X: DB 20
 HEAD_Y: DB 12
 
 FRUIT_COORDS:
-FRUIT_X: DB 10
-FRUIT_Y: DB 20
+FRUIT_X: DB 9
+FRUIT_Y: DB 12 
 
+ANY_KEY_MSG: DB "Press any key to start.", 0x00
 DEAD_MSG: DB "Game over, press r to restart.", 0x00
-SCORE_STR: DB "Score: ", 0x00
 
 TIMES 510 - ($ - $$) DB 0
 DW 0xAA55
