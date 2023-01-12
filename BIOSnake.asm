@@ -297,7 +297,7 @@ FRUIT_COORDS:
 FRUIT_X: DB 9
 FRUIT_Y: DB 12 
 
-ANY_KEY_MSG: DB "Press any key to start.", 0x00
+ANY_KEY_MSG: DB "Use W, A, S, D to control the snake, press any key to start.", 0x00
 DEAD_MSG: DB "Game over, press r to restart.", 0x00
 
 TIMES 510 - ($ - $$) DB 0
