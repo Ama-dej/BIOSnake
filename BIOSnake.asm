@@ -148,7 +148,7 @@ CHECK_FRUIT_OVERLAP:
 	JGE DEAD ; Checks if we went out of the screen.
 
 	CMP DX, WORD[FRUIT_COORDS]
-	JNE DISPLAY_STUFF ; If the head and fruit coords are equal we don't jump.
+	JNE DISPLAY_FRUIT ; If the head and fruit coords are equal we don't jump.
 
 	MOV AH, 0x00
 	INT 0x1A ; Get the number of clock ticks since midnight.
@@ -173,14 +173,43 @@ CHECK_FRUIT_OVERLAP:
 
 	OR DX, CX
 
-	INC WORD[SNAKE_LENGTH] ; Increment the snake lenght.
+	MOV BX, SNAKE_BODY
+	MOV DI, WORD[SNAKE_LENGTH]
+
+CHECK_FRUIT_COLLISION:
+	CMP DX, WORD[BX]
+	JNE NO_FRUIT_COLLISION ; If the fruit overlaps with the snake we have to displace it by 1.
+
+	INC DL
+	CMP DL, 40 
+	JNE DL_DH_NO_OVERFLOW ; Check if the x coordinate overflows.
+
+	XOR DL, DL ; If it does clear it.
+
+	INC DH
+	CMP DH, 25
+	JNE DL_DH_NO_OVERFLOW ; Check if the y coordinate overflows.
+
+	XOR DH, DH
+
+DL_DH_NO_OVERFLOW:
+	MOV BX, SNAKE_BODY ; Load the original values to repeat the loop.
+	MOV DI, WORD[SNAKE_LENGTH]
+	JMP CHECK_FRUIT_COLLISION
+
+NO_FRUIT_COLLISION:
+	ADD BX, 2
+	DEC DI
+	JNZ CHECK_FRUIT_COLLISION ; If DI is zero it means that the fruit doesn't overlap with the snake.
+
 	MOV WORD[FRUIT_COORDS], DX ; Save the new coordinate.
+	INC WORD[SNAKE_LENGTH] ; Increment the snake lenght.
 
+	MOV AL, ' '
 	MOV CX, 1
-	MOV AL, ' ' ; We modified these registers so we have to restore them to the correct values.
 
-DISPLAY_STUFF:
-	MOV BL, 0x47
+DISPLAY_FRUIT:
+	MOV BX, 0x0047
 	MOV DX, WORD[FRUIT_COORDS]
 	CALL WRITE_AT_LOCATION ; Display the fruit.
 
