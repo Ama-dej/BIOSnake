@@ -13,6 +13,10 @@ SETUP:
 	MOV BL, 0x00
 	INT 0x10 ; Turn off blinking attribute.
 
+	MOV BX, SNAKE_BODY
+	MOV CX, 4000 
+	CALL MEMINIT ; Initialises the snake body to a known value.
+
 	MOV SI, ANY_KEY_MSG
 	CALL PUTS
 
@@ -286,6 +290,24 @@ PUTS:
 	POP AX
 	RET
 
+; Initialises an array to a nice value.
+;
+; BX -> Array location.
+; CX -> Number of bytes to intialise. 
+MEMINIT:
+	PUSH BX
+	PUSH CX
+
+.LOOP:
+	MOV BYTE[BX], 69 
+	INC BX
+	DEC CX
+	JNZ .LOOP
+
+	POP CX
+	POP BX
+	RET
+
 LAST_KEY: DB 'a'
 
 SNAKE_LENGTH: DW 1 
@@ -297,7 +319,7 @@ FRUIT_COORDS:
 FRUIT_X: DB 9
 FRUIT_Y: DB 12 
 
-ANY_KEY_MSG: DB "Use W, A, S, D to control the snake, press any key to start.", 0x00
+ANY_KEY_MSG: DB "Snake controls => W, A, S, D.", 0x00
 DEAD_MSG: DB "Game over, press r to restart.", 0x00
 
 TIMES 510 - ($ - $$) DB 0
