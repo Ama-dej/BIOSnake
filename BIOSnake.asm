@@ -13,10 +13,6 @@ SETUP:
 	MOV BL, 0x00
 	INT 0x10 ; Turn off blinking attribute.
 
-	MOV BX, SNAKE_BODY
-	MOV CX, 4000 
-	CALL MEMINIT ; Initialises the snake body to a known value.
-
 	MOV SI, ANY_KEY_MSG
 	CALL PUTS
 
@@ -24,6 +20,10 @@ SETUP:
 	INT 0x16 ; Wait for the user to start the game.
 
 START_GAME:
+	MOV BX, SNAKE_BODY
+	MOV CX, 4000 
+	CALL MEMINIT ; Initialises the snake body to a known value.
+
 	MOV AH, 0x00
 	MOV AL, 0x01
 	INT 0x10 ; Set display to 40x25 and 16 bits of colour.
@@ -243,7 +243,7 @@ WAIT_FOR_R:
 	OR AL, 0B00100000 ; Make the character lowercase.
 
 	CMP AL, 'r'
-	JE START_GAME ; If it's r then reset the game, else wait again.
+	JE START_GAME ; If it's r then reset the game, else wait some more.
 	JMP WAIT_FOR_R 
 	
 HALT:
